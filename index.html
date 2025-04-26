@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lista de Compras Saludable</title>
+<style>
+    :root {
+        --fondo-claro: #f9f9f9;
+        --texto-claro: #333;
+        --fondo-oscuro: #1e1e1e;
+        --texto-oscuro: #ddd;
+        --verde: #4caf50;
+    }
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        margin: 16px;
+        background: var(--fondo-claro);
+        color: var(--texto-claro);
+        transition: background 0.3s, color 0.3s;
+    }
+    h1, h2 {
+        text-align: center;
+    }
+    h3 {
+        margin-top: 20px;
+        color: var(--verde);
+    }
+    .item {
+        display: flex;
+        align-items: center;
+        background: #fff;
+        padding: 10px;
+        margin: 5px 0;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    body.dark-mode .item {
+        background: #333;
+        box-shadow: 0 2px 5px rgba(255, 255, 255, 0.1);
+    }
+    .item input[type="checkbox"] {
+        margin-right: 12px;
+    }
+    .item label {
+        flex: 1;
+        font-size: 1em;
+    }
+    .comprado label {
+        text-decoration: line-through;
+        color: #aaa;
+    }
+    #progreso-container, #progreso-semanas-container {
+        background: #ddd;
+        border-radius: 20px;
+        height: 20px;
+        margin: 20px 0;
+        overflow: hidden;
+    }
+    #barra-progreso, #barra-progreso-semanas {
+        background: var(--verde);
+        height: 100%;
+        width: 0%;
+        transition: width 0.3s;
+    }
+    #progreso-texto, #progreso-semanas-texto {
+        text-align: center;
+        margin-top: -10px;
+        font-size: 0.9em;
+    }
+    .botones-semana, .modo-oscuro-toggle, .admin-lista {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    .botones-semana button, .modo-oscuro-toggle button, .admin-lista button {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 5px;
+        background-color: var(--verde);
+        color: white;
+        font-size: 1em;
+        cursor: pointer;
+    }
+    .botones-semana button:hover, .modo-oscuro-toggle button:hover, .admin-lista button:hover {
+        background-color: #45a049;
+    }
+</style>
+</head>
+<body>
+<h1>👥 Lista de Compras Saludable</h1>
+<div class="modo-oscuro-toggle">
+    <button onclick="toggleModoOscuro()">🌙 Cambiar modo</button>
+</div>
+<div class="admin-lista">
+    <button onclick="agregarProducto()">➕ Agregar Producto</button>
+    <button onclick="eliminarProducto()">➖ Eliminar Producto</button>
+    <button onclick="editarProducto()">✏️ Editar Producto</button>
+</div>
+<div id="lista-supermercado"></div>
+<div id="progreso-container">
+    <div id="barra-progreso"></div>
+</div>
+<div id="progreso-texto">0 de 0 completado</div>
+
+<h2>⏳ Seguimiento de Semanas</h2>
+<div id="progreso-semanas-container">
+    <div id="barra-progreso-semanas"></div>
+</div>
+<div id="progreso-semanas-texto">Semana 1 de 12</div>
+
+<div class="botones-semana">
+    <button onclick="retrocederSemana()">⬅️ Retroceder</button>
+    <button onclick="avanzarSemana()">➡️ Avanzar</button>
+</div>
+
+<script>
+let lista = [
+    { categoria: "Frutas", producto: "🍌 Plátano", cantidad: "10 unidades" },
+    { categoria: "Frutas", producto: "🍓 Frutilla (fresa)", cantidad: "500 g" },
+    { categoria: "Frutas", producto: "🍏 Manzana", cantidad: "6 unidades" },
+    { categoria: "Frutas", producto: "🍐 Pera", cantidad: "6 unidades" },
+    { categoria: "Verduras", producto: "🍅 Tomate", cantidad: "6 unidades grandes" },
+    { categoria: "Verduras", producto: "🥬 Lechuga", cantidad: "2 cabezas" },
+    { categoria: "Verduras", producto: "🥒 Pepino", cantidad: "3 unidades" },
+    { categoria: "Verduras", producto: "🥕 Zanahoria", cantidad: "8 unidades" },
+    { categoria: "Verduras", producto: "🥬 Repollo", cantidad: "1 pequeño" },
+    { categoria: "Verduras", producto: "🧅 Cebolla morada", cantidad: "2 unidades" },
+    { categoria: "Verduras", producto: "🥬 Espinaca", cantidad: "1 bolsa o 200 g" },
+    { categoria: "Verduras", producto: "🫑 Pimiento", cantidad: "3 unidades" },
+    { categoria: "Verduras", producto: "🎃 Zapallo (calabaza)", cantidad: "1 pequeño o ½ grande" },
+    { categoria: "Verduras", producto: "🥦 Brócoli (opcional)", cantidad: "1 cabeza mediana" },
+    { categoria: "Verduras", producto: "🥑 Palta / Aguacate", cantidad: "5 unidades" },
+    { categoria: "Proteínas", producto: "🍗 Pechuga de pollo", cantidad: "6 filetes grandes (600-800 g)" },
+    { categoria: "Proteínas", producto: "🐟 Atún en agua (lata)", cantidad: "6 latas medianas" },
+    { categoria: "Proteínas", producto: "🥚 Huevos", cantidad: "24 unidades" },
+    { categoria: "Proteínas", producto: "🦃 Pavo (filete o pechuga)", cantidad: "400-500 g" },
+    { categoria: "Proteínas", producto: "🌰 Lentejas crudas", cantidad: "400 g" },
+    { categoria: "Proteínas", producto: "🥣 Yogur vegetal sin azúcar", cantidad: "10-12 unidades pequeñas" },
+    { categoria: "Carbohidratos", producto: "🍘 Galletas de arroz (sin gluten)", cantidad: "2 paquetes grandes" },
+    { categoria: "Carbohidratos", producto: "🌮 Tacos de maíz 100%", cantidad: "1 paquete (10-12 unidades)" },
+    { categoria: "Carbohidratos", producto: "🥔 Papa", cantidad: "4 medianas" },
+    { categoria: "Carbohidratos", producto: "🍠 Camote (opcional)", cantidad: "2 medianos" },
+    { categoria: "Otros", producto: "🥛 Leche vegetal (sin azúcar)", cantidad: "2 litros" },
+    { categoria: "Otros", producto: "☕️ Café", cantidad: "1 paquete pequeño (250 g)" },
+    { categoria: "Otros", producto: "🌱 Semillas de chía (opcional)", cantidad: "100 g" },
+    { categoria: "Condimentos", producto: "🧂 Aceite de oliva", cantidad: "1 botella pequeña (250 ml)" },
+    { categoria: "Condimentos", producto: "🌿 Sal, pimienta, orégano, cúrcuma", cantidad: "al gusto" }
+];
+
+let productosComprados = 0;
+const semanasTotales = 12;
+let semanaActual = 1;
+
+const listaDiv = document.getElementById('lista-supermercado');
+const barraProgreso = document.getElementById('barra-progreso');
+const progresoTexto = document.getElementById('progreso-texto');
+const barraProgresoSemanas = document.getElementById('barra-progreso-semanas');
+const progresoSemanasTexto = document.getElementById('progreso-semanas-texto');
+
+function mostrarLista() {
+    listaDiv.innerHTML = '';
+    let categoriaActual = '';
+    lista.forEach(item => {
+        if (item.categoria !== categoriaActual) {
+            listaDiv.innerHTML += `<h3>${item.categoria}</h3>`;
+            categoriaActual = item.categoria;
+        }
+        const div = document.createElement('div');
+        div.className = 'item';
+        div.innerHTML = `
+            <input type="checkbox" onchange="marcarComprado(this)">
+            <label>${item.producto} - ${item.cantidad}</label>
+        `;
+        listaDiv.appendChild(div);
+    });
+    actualizarProgreso();
+    actualizarProgresoSemanas();
+}
+
+function marcarComprado(checkbox) {
+    const div = checkbox.parentElement;
+    if (checkbox.checked) {
+        div.classList.add('comprado');
+        productosComprados++;
+    } else {
+        div.classList.remove('comprado');
+        productosComprados--;
+    }
+    actualizarProgreso();
+}
+
+function actualizarProgreso() {
+    const porcentaje = (productosComprados / lista.length) * 100;
+    barraProgreso.style.width = `${porcentaje}%`;
+    progresoTexto.textContent = `${productosComprados} de ${lista.length} completados`;
+    if (productosComprados === lista.length) {
+        setTimeout(() => {
+            alert('🎉 ¡Felicidades! ¡Completaste toda la lista de compras! 🎉');
+        }, 300);
+    }
+}
+
+function actualizarProgresoSemanas() {
+    const porcentajeSemanas = (semanaActual / semanasTotales) * 100;
+    barraProgresoSemanas.style.width = `${porcentajeSemanas}%`;
+    progresoSemanasTexto.textContent = `Semana ${semanaActual} de ${semanasTotales}`;
+}
+
+function avanzarSemana() {
+    if (semanaActual < semanasTotales) {
+        semanaActual++;
+        actualizarProgresoSemanas();
+    }
+}
+
+function retrocederSemana() {
+    if (semanaActual > 1) {
+        semanaActual--;
+        actualizarProgresoSemanas();
+    }
+}
+
+function toggleModoOscuro() {
+    document.body.classList.toggle('dark-mode');
+    if (document.body.classList.contains('dark-mode')) {
+        document.body.style.background = "var(--fondo-oscuro)";
+        document.body.style.color = "var(--texto-oscuro)";
+    } else {
+        document.body.style.background = "var(--fondo-claro)";
+        document.body.style.color = "var(--texto-claro)";
+    }
+}
+
+function agregarProducto() {
+    const categoria = prompt("Ingrese la categoría del producto:");
+    const producto = prompt("Ingrese el nombre del producto (con emoji si desea):");
+    const cantidad = prompt("Ingrese la cantidad:");
+    if (categoria && producto && cantidad) {
+        lista.push({ categoria, producto, cantidad });
+        mostrarLista();
+    }
+}
+
+function eliminarProducto() {
+    const productoNombre = prompt("Ingrese el nombre exacto del producto que desea eliminar:");
+    lista = lista.filter(item => item.producto !== productoNombre);
+    mostrarLista();
+}
+
+function editarProducto() {
+    const productoNombre = prompt("Ingrese el nombre exacto del producto que desea editar:");
+    const index = lista.findIndex(item => item.producto === productoNombre);
+    if (index !== -1) {
+        const nuevoProducto = prompt("Nuevo nombre del producto (incluya emoji si desea):", lista[index].producto);
+        const nuevaCantidad = prompt("Nueva cantidad:", lista[index].cantidad);
+        if (nuevoProducto && nuevaCantidad) {
+            lista[index].producto = nuevoProducto;
+            lista[index].cantidad = nuevaCantidad;
+            mostrarLista();
+        }
+    } else {
+        alert("Producto no encontrado.");
+    }
+}
+
+mostrarLista();
+</script>
+</body>
+</html>
